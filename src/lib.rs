@@ -169,6 +169,85 @@ impl SecureLogger {
         let entries = self.entries.lock().unwrap();
         entries.iter().filter(|e| e.level == level).count()
     }
+
+    /// Get entries within a date range
+    pub fn get_entries_by_date_range(
+        &self,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+    ) -> Vec<LogEntry> {
+        let entries = self.entries.lock().unwrap();
+        entries
+            .iter()
+            .filter(|e| e.timestamp >= start && e.timestamp <= end)
+            .cloned()
+            .collect()
+    }
+
+    /// Clear all log entries (use with caution - breaks audit trail)
+    pub fn clear(&self) {
+        let mut entries = self.entries.lock().unwrap();
+        entries.clear()
+    }
+
+    /// Get the most recent N entries
+    pub fn get_recent_entries(&self, count: usize) -> Vec<LogEntry> {
+        let entries = self.entries.lock().unwrap();
+        let total = entries.len();
+        if total <= count {
+            entries.clone()
+        } else {
+            entries[total - count..].to_vec()
+        }
+    }
+
+    /// Search log entries by message content
+    pub fn search(&self, query: &str) -> Vec<LogEntry> {
+        let entries = self.entries.lock().unwrap();
+        entries
+            .iter()
+            .filter(|e| e.message.contains(query))
+            .cloned()
+            .collect()
+    }
+
+    /// Get statistics about log entries
+    pub fn get_statistics(&self) -> LogStatistics {
+        let entries = self.entries.lock().unwrap();
+        let total_entries = entries.len();
+
+        let mut stats = LogStatistics {
+            total_entries,
+            info_count: 0,
+            warning_count: 0,
+            security_event_count: 0,
+            critical_count: 0,
+            audit_count: 0,
+        };
+
+        for entry in entries.iter() {
+            match entry.level {
+                SecurityLevel::Info => stats.info_count += 1,
+                SecurityLevel::Warning => stats.warning_count += 1,
+                SecurityLevel::SecurityEvent => stats.security_event_count += 1,
+                SecurityLevel::Critical => stats.critical_count += 1,
+                SecurityLevel::Audit => stats.audit_count += 1,
+            }
+        }
+
+        stats
+    }
+}
+
+/// Statistics about log entries
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LogStatistics {
+    pub total_entries: usize,
+    pub info_count: usize,
+    pub warning_count: usize,
+    pub security_event_count: usize,
+    pub critical_count: usize,
+    pub audit_count: usize,
 }
 
 impl Default for SecureLogger {
@@ -252,5 +331,97 @@ mod tests {
         let json = logger.export_json().unwrap();
         assert!(json.contains("Failed login attempt"));
         assert!(json.contains("192.168.1.100"));
+    }
+
+    #[test]
+    fn test_date_range_filtering() {
+        let logger = SecureLogger::new();
+        let now = Utc::now();
+
+        logger.info("Message 1");
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        logger.info("Message 2");
+
+        let entries = logger.get_entries_by_date_range(now, Utc::now());
+        assert!(entries.len() >= 2);
+    }
+
+    #[test]
+    fn test_recent_entries() {
+        let logger = SecureLogger::new();
+        for i in 0..10 {
+            logger.info(format!("Message {}", i));
+        }
+
+        let recent = logger.get_recent_entries(5);
+        assert_eq!(recent.len(), 5);
+        assert!(recent[0].message.contains("Message"));
+    }
+
+    #[test]
+    fn test_search_functionality() {
+        let logger = SecureLogger::new();
+        logger.info("User login successful");
+        logger.info("Database connection established");
+        logger.warning("User login failed");
+
+        let results = logger.search("login");
+        assert_eq!(results.len(), 2);
+        assert!(results.iter().all(|e| e.message.contains("login")));
+    }
+
+    #[test]
+    fn test_statistics() {
+        let logger = SecureLogger::new();
+        logger.info("Info 1");
+        logger.info("Info 2");
+        logger.warning("Warning 1");
+        logger.critical("Critical 1", None);
+        logger.audit("Audit 1", None);
+
+        let stats = logger.get_statistics();
+        assert_eq!(stats.total_entries, 5);
+        assert_eq!(stats.info_count, 2);
+        assert_eq!(stats.warning_count, 1);
+        assert_eq!(stats.critical_count, 1);
+        assert_eq!(stats.audit_count, 1);
+    }
+
+    #[test]
+    fn test_clear_functionality() {
+        let logger = SecureLogger::new();
+        logger.info("Test message 1");
+        logger.info("Test message 2");
+        assert_eq!(logger.get_entries().len(), 2);
+
+        logger.clear();
+        assert_eq!(logger.get_entries().len(), 0);
+    }
+
+    #[test]
+    fn test_large_volume_logging() {
+        let logger = SecureLogger::new();
+        for i in 0..1000 {
+            logger.info(format!("Log entry {}", i));
+        }
+
+        assert_eq!(logger.get_entries().len(), 1000);
+        assert!(logger.verify_all_integrity());
+    }
+
+    #[test]
+    fn test_metadata_preservation() {
+        let logger = SecureLogger::new();
+        let metadata = serde_json::json!({
+            "transaction_id": "TXN-12345",
+            "amount": 50000.0,
+            "currency": "USD"
+        });
+
+        logger.audit("Transaction completed", Some(metadata.clone()));
+
+        let entries = logger.get_entries_by_level(SecurityLevel::Audit);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].metadata, Some(metadata));
     }
 }
