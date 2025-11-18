@@ -1,5 +1,10 @@
 # Rust Secure Logger
 
+[![CI](https://github.com/guardsarm/rust-secure-logger/actions/workflows/ci.yml/badge.svg)](https://github.com/guardsarm/rust-secure-logger/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/rust-secure-logger.svg)](https://crates.io/crates/rust-secure-logger)
+[![Documentation](https://docs.rs/rust-secure-logger/badge.svg)](https://docs.rs/rust-secure-logger)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A memory-safe, thread-safe logging library designed for financial systems and critical infrastructure where security and audit trails are essential.
 
 ## 🔒 Security-First Design
@@ -191,9 +196,9 @@ Contributions welcome! Please open an issue or pull request.
 
 ## Related Projects
 
-- [rust-crypto-utils](https://github.com/your-username/rust-crypto-utils) - Cryptographic utilities
-- [rust-transaction-validator](https://github.com/your-username/rust-transaction-validator) - Financial transaction validation
-- [rust-threat-detector](https://github.com/your-username/rust-threat-detector) - SIEM threat detection
+- [rust-crypto-utils](https://github.com/guardsarm/rust-crypto-utils) - Cryptographic utilities
+- [rust-transaction-validator](https://github.com/guardsarm/rust-transaction-validator) - Financial transaction validation
+- [rust-threat-detector](https://github.com/guardsarm/rust-threat-detector) - SIEM threat detection
 
 ## Citation
 
@@ -201,7 +206,7 @@ If you use this library in research or production systems, please cite:
 
 ```
 Awunor, T.C. (2024). Rust Secure Logger: Memory-Safe Logging for Financial Systems.
-https://github.com/your-username/rust-secure-logger
+https://github.com/guardsarm/rust-secure-logger
 ```
 
 ---
