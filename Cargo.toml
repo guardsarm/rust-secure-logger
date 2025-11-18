@@ -2,7 +2,7 @@
 name = "rust-secure-logger"
 version = "0.1.0"
 edition = "2021"
-authors = ["Tony Chuks Awunor <your-email@example.com>"]
+authors = ["Tony Chuks Awunor <chuksawunor@guardsarm.com>"]
 description = "Memory-safe security logging for financial systems and critical infrastructure"
 license = "MIT"
 repository = "https://github.com/guardsarm/rust-secure-logger"
@@ -10,7 +10,7 @@ keywords = ["security", "logging", "audit", "financial", "memory-safe"]
 categories = ["development-tools::debugging", "cryptography"]
 
 [dependencies]
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
