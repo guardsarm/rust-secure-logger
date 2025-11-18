@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Tony Chuks Awunor <your-email@example.com>"]
 description = "Memory-safe security logging for financial systems and critical infrastructure"
 license = "MIT"
-repository = "https://github.com/your-username/rust-secure-logger"
+repository = "https://github.com/guardsarm/rust-secure-logger"
 keywords = ["security", "logging", "audit", "financial", "memory-safe"]
 categories = ["development-tools::debugging", "cryptography"]
 
