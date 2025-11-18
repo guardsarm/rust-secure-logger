@@ -17,7 +17,7 @@ fn main() {
             "ip_address": "192.168.1.100",
             "attempt_count": 3
         })),
-        "authentication"
+        "authentication",
     );
 
     logger.log_with_category(
@@ -28,7 +28,7 @@ fn main() {
             "query": "SELECT * FROM users WHERE id=1' OR '1'='1",
             "blocked": true
         })),
-        "web_attack"
+        "web_attack",
     );
 
     logger.audit(
@@ -39,7 +39,7 @@ fn main() {
             "currency": "USD",
             "from_account": "****1234",
             "to_account": "****5678"
-        }))
+        })),
     );
 
     // Export to CEF format (for ArcSight)

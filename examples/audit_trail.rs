@@ -134,10 +134,17 @@ fn main() {
     // Display audit entries
     println!("\n=== Audit Trail Entries ===");
     for (i, entry) in audit_entries.iter().enumerate() {
-        println!("\n[{}] {}", i + 1, entry.timestamp.format("%Y-%m-%d %H:%M:%S UTC"));
+        println!(
+            "\n[{}] {}",
+            i + 1,
+            entry.timestamp.format("%Y-%m-%d %H:%M:%S UTC")
+        );
         println!("    Message: {}", entry.message);
         if let Some(metadata) = &entry.metadata {
-            println!("    Metadata: {}", serde_json::to_string_pretty(metadata).unwrap());
+            println!(
+                "    Metadata: {}",
+                serde_json::to_string_pretty(metadata).unwrap()
+            );
         }
         println!("    Integrity Hash: {}...", &entry.integrity_hash[..16]);
         println!("    Verified: {}", entry.verify_integrity());

@@ -1,7 +1,7 @@
 //! Example: Generate compliance reports (SOX, PCI-DSS, GLBA)
 
-use rust_secure_logger::{SecureLogger, ComplianceReporter};
-use chrono::{Utc, Duration};
+use chrono::{Duration, Utc};
+use rust_secure_logger::{ComplianceReporter, SecureLogger};
 
 fn main() {
     println!("=== Compliance Reporting Example ===\n");
@@ -12,7 +12,7 @@ fn main() {
     // Simulate a day of operations
     logger.audit(
         "User login",
-        Some(serde_json::json!({"user_id": "USR-001", "role": "admin"}))
+        Some(serde_json::json!({"user_id": "USR-001", "role": "admin"})),
     );
 
     logger.audit(
@@ -21,17 +21,17 @@ fn main() {
             "transaction_id": "TXN-12345",
             "amount": 10000.00,
             "type": "wire_transfer"
-        }))
+        })),
     );
 
     logger.security_event(
         "Failed authentication attempt",
-        Some(serde_json::json!({"username": "admin", "ip": "192.168.1.50"}))
+        Some(serde_json::json!({"username": "admin", "ip": "192.168.1.50"})),
     );
 
     logger.critical(
         "Unauthorized access attempt",
-        Some(serde_json::json!({"resource": "/admin/users", "ip": "10.0.0.100"}))
+        Some(serde_json::json!({"resource": "/admin/users", "ip": "10.0.0.100"})),
     );
 
     logger.info("Daily backup completed");
@@ -45,7 +45,10 @@ fn main() {
     println!("SOX COMPLIANCE REPORT");
     println!("{}", "=".repeat(80));
     let sox_report = logger.generate_sox_report(period_start, period_end);
-    println!("Report Period: {} to {}", sox_report.period_start, sox_report.period_end);
+    println!(
+        "Report Period: {} to {}",
+        sox_report.period_start, sox_report.period_end
+    );
     println!("Total Events: {}", sox_report.total_events);
     println!("Audit Events: {}", sox_report.audit_events);
     println!("Security Events: {}", sox_report.security_events);
@@ -53,7 +56,13 @@ fn main() {
     println!("Integrity Verified: {}", sox_report.integrity_verified);
     println!("\nFindings:");
     for (i, finding) in sox_report.findings.iter().enumerate() {
-        println!("  {}. [{:?}] {} - {}", i + 1, finding.severity, finding.control_area, finding.description);
+        println!(
+            "  {}. [{:?}] {} - {}",
+            i + 1,
+            finding.severity,
+            finding.control_area,
+            finding.description
+        );
     }
     println!();
 
@@ -70,10 +79,23 @@ fn main() {
     let pci_report = logger.generate_pci_report(period_start, period_end);
     println!("Total Events: {}", pci_report.total_events);
     println!("Audit Events (Req 10.2): {}", pci_report.audit_events);
-    println!("Integrity Status (Req 10.5): {}", if pci_report.integrity_verified { "PASS" } else { "FAIL" });
+    println!(
+        "Integrity Status (Req 10.5): {}",
+        if pci_report.integrity_verified {
+            "PASS"
+        } else {
+            "FAIL"
+        }
+    );
     println!("\nFindings:");
     for (i, finding) in pci_report.findings.iter().enumerate() {
-        println!("  {}. [{:?}] {} - {}", i + 1, finding.severity, finding.control_area, finding.description);
+        println!(
+            "  {}. [{:?}] {} - {}",
+            i + 1,
+            finding.severity,
+            finding.control_area,
+            finding.description
+        );
     }
     println!();
 
@@ -82,10 +104,19 @@ fn main() {
     println!("{}", "=".repeat(80));
     let glba_report = logger.generate_glba_report(period_start, period_end);
     println!("Total Events: {}", glba_report.total_events);
-    println!("Safeguards Rule - Audit Events: {}", glba_report.audit_events);
+    println!(
+        "Safeguards Rule - Audit Events: {}",
+        glba_report.audit_events
+    );
     println!("\nFindings:");
     for (i, finding) in glba_report.findings.iter().enumerate() {
-        println!("  {}. [{:?}] {} - {}", i + 1, finding.severity, finding.control_area, finding.description);
+        println!(
+            "  {}. [{:?}] {} - {}",
+            i + 1,
+            finding.severity,
+            finding.control_area,
+            finding.description
+        );
     }
     println!();
 

@@ -96,10 +96,7 @@ impl ComplianceReporter {
             .filter(|e| e.level == SecurityLevel::Critical)
             .count();
 
-        let integrity_failures = filtered
-            .iter()
-            .filter(|e| !e.verify_integrity())
-            .count();
+        let integrity_failures = filtered.iter().filter(|e| !e.verify_integrity()).count();
         let integrity_verified = integrity_failures == 0;
 
         let mut findings = Vec::new();
@@ -180,10 +177,7 @@ impl ComplianceReporter {
             .filter(|e| e.level == SecurityLevel::Critical)
             .count();
 
-        let integrity_failures = filtered
-            .iter()
-            .filter(|e| !e.verify_integrity())
-            .count();
+        let integrity_failures = filtered.iter().filter(|e| !e.verify_integrity()).count();
         let integrity_verified = integrity_failures == 0;
 
         let mut findings = Vec::new();
@@ -262,10 +256,7 @@ impl ComplianceReporter {
             .filter(|e| e.level == SecurityLevel::Critical)
             .count();
 
-        let integrity_failures = filtered
-            .iter()
-            .filter(|e| !e.verify_integrity())
-            .count();
+        let integrity_failures = filtered.iter().filter(|e| !e.verify_integrity()).count();
         let integrity_verified = integrity_failures == 0;
 
         let mut findings = Vec::new();
@@ -274,7 +265,7 @@ impl ComplianceReporter {
         let access_events = filtered
             .iter()
             .filter(|e| {
-                e.category.as_ref().map_or(false, |c| {
+                e.category.as_ref().is_some_and(|c| {
                     c.contains("authentication") || c.contains("access")
                 })
             })
@@ -320,8 +311,14 @@ impl ComplianceReporter {
         csv.push_str(&format!("Audit Events,{}\n", report.audit_events));
         csv.push_str(&format!("Security Events,{}\n", report.security_events));
         csv.push_str(&format!("Critical Events,{}\n", report.critical_events));
-        csv.push_str(&format!("Integrity Verified,{}\n", report.integrity_verified));
-        csv.push_str(&format!("Integrity Failures,{}\n", report.integrity_failures));
+        csv.push_str(&format!(
+            "Integrity Verified,{}\n",
+            report.integrity_verified
+        ));
+        csv.push_str(&format!(
+            "Integrity Failures,{}\n",
+            report.integrity_failures
+        ));
         csv.push_str(&format!("Total Findings,{}\n", report.findings.len()));
         csv
     }

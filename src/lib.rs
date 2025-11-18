@@ -30,15 +30,15 @@
 //! })));
 //! ```
 
-pub mod entry;
-pub mod persistence;
-pub mod formats;
 pub mod compliance;
+pub mod entry;
+pub mod formats;
+pub mod persistence;
 
-pub use entry::{LogEntry, SecurityLevel};
-pub use persistence::{LogWriter, PersistenceConfig};
-pub use formats::{CEFFormatter, LEEFFormatter, SyslogFormatter, SplunkFormatter};
 pub use compliance::{ComplianceFramework, ComplianceReport, ComplianceReporter};
+pub use entry::{LogEntry, SecurityLevel};
+pub use formats::{CEFFormatter, LEEFFormatter, SplunkFormatter, SyslogFormatter};
+pub use persistence::{LogWriter, PersistenceConfig};
 
 use std::sync::{Arc, Mutex};
 
@@ -103,8 +103,15 @@ impl SecureLogger {
     }
 
     /// Internal logging function
-    fn log(&self, level: SecurityLevel, message: String, metadata: Option<serde_json::Value>, category: Option<String>) {
-        let entry = LogEntry::new_with_context(level, message, metadata, self.source.clone(), category);
+    fn log(
+        &self,
+        level: SecurityLevel,
+        message: String,
+        metadata: Option<serde_json::Value>,
+        category: Option<String>,
+    ) {
+        let entry =
+            LogEntry::new_with_context(level, message, metadata, self.source.clone(), category);
         let mut entries = self.entries.lock().unwrap();
         entries.push(entry);
     }
@@ -150,25 +157,25 @@ impl SecureLogger {
     /// Export logs in CEF format (for ArcSight)
     pub fn export_cef(&self) -> Vec<String> {
         let entries = self.entries.lock().unwrap();
-        entries.iter().map(|e| CEFFormatter::format(e)).collect()
+        entries.iter().map(CEFFormatter::format).collect()
     }
 
     /// Export logs in LEEF format (for QRadar)
     pub fn export_leef(&self) -> Vec<String> {
         let entries = self.entries.lock().unwrap();
-        entries.iter().map(|e| LEEFFormatter::format(e)).collect()
+        entries.iter().map(LEEFFormatter::format).collect()
     }
 
     /// Export logs in Syslog format
     pub fn export_syslog(&self) -> Vec<String> {
         let entries = self.entries.lock().unwrap();
-        entries.iter().map(|e| SyslogFormatter::format(e)).collect()
+        entries.iter().map(SyslogFormatter::format).collect()
     }
 
     /// Export logs in Splunk HEC format
     pub fn export_splunk(&self) -> Vec<String> {
         let entries = self.entries.lock().unwrap();
-        entries.iter().map(|e| SplunkFormatter::format(e)).collect()
+        entries.iter().map(SplunkFormatter::format).collect()
     }
 
     /// Get count of entries by security level
@@ -302,10 +309,13 @@ mod tests {
         let logger = SecureLogger::new();
         logger.info("Application started");
         logger.warning("High memory usage detected");
-        logger.audit("User authentication successful", Some(serde_json::json!({
-            "user_id": "12345",
-            "timestamp": "2024-11-06T00:00:00Z"
-        })));
+        logger.audit(
+            "User authentication successful",
+            Some(serde_json::json!({
+                "user_id": "12345",
+                "timestamp": "2024-11-06T00:00:00Z"
+            })),
+        );
 
         assert_eq!(logger.get_entries().len(), 3);
         assert_eq!(logger.count_by_level(SecurityLevel::Info), 1);
@@ -338,9 +348,12 @@ mod tests {
     #[test]
     fn test_cef_export() {
         let logger = SecureLogger::new();
-        logger.security_event("Failed login attempt", Some(serde_json::json!({
-            "username": "admin"
-        })));
+        logger.security_event(
+            "Failed login attempt",
+            Some(serde_json::json!({
+                "username": "admin"
+            })),
+        );
 
         let cef_logs = logger.export_cef();
         assert_eq!(cef_logs.len(), 1);
@@ -360,10 +373,13 @@ mod tests {
     #[test]
     fn test_compliance_reporting() {
         let logger = SecureLogger::new();
-        logger.audit("Transaction processed", Some(serde_json::json!({
-            "amount": 1000,
-            "currency": "USD"
-        })));
+        logger.audit(
+            "Transaction processed",
+            Some(serde_json::json!({
+                "amount": 1000,
+                "currency": "USD"
+            })),
+        );
 
         let start = chrono::Utc::now() - chrono::Duration::hours(1);
         let end = chrono::Utc::now();
@@ -389,14 +405,9 @@ mod tests {
             SecurityLevel::SecurityEvent,
             "Login failed",
             None,
-            "authentication"
+            "authentication",
         );
-        logger.log_with_category(
-            SecurityLevel::Info,
-            "Page loaded",
-            None,
-            "web"
-        );
+        logger.log_with_category(SecurityLevel::Info, "Page loaded", None, "web");
 
         let auth_events = logger.get_entries_by_category("authentication");
         assert_eq!(auth_events.len(), 1);

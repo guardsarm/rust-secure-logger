@@ -1,7 +1,6 @@
 //! SIEM export formats (CEF, LEEF, Syslog)
 
 use crate::entry::{LogEntry, SecurityLevel};
-use chrono::Utc;
 
 /// Common Event Format (CEF) - ArcSight standard
 pub struct CEFFormatter;
@@ -30,7 +29,7 @@ impl CEFFormatter {
         }
 
         if let Some(ref meta) = entry.metadata {
-            extensions.push(format!("cs1={}", meta.to_string()));
+            extensions.push(format!("cs1={}", meta));
             extensions.push("cs1Label=metadata".to_string());
         }
 
@@ -87,7 +86,7 @@ impl LEEFFormatter {
         }
 
         if let Some(ref meta) = entry.metadata {
-            fields.push(format!("usrName={}", meta.to_string()));
+            fields.push(format!("usrName={}", meta));
         }
 
         format!(
@@ -128,7 +127,10 @@ impl SyslogFormatter {
 
         // Structured data
         let structured_data = if let Some(ref meta) = entry.metadata {
-            format!("[metadata@32473 data=\"{}\"]", meta.to_string().replace('"', "\\\""))
+            format!(
+                "[metadata@32473 data=\"{}\"]",
+                meta.to_string().replace('"', "\\\"")
+            )
         } else {
             "-".to_string()
         };
@@ -151,11 +153,11 @@ impl SyslogFormatter {
         // Facility: 16 (local use 0)
         // Severity mapping
         let severity = match level {
-            SecurityLevel::Info => 6,       // Informational
-            SecurityLevel::Warning => 4,    // Warning
+            SecurityLevel::Info => 6,          // Informational
+            SecurityLevel::Warning => 4,       // Warning
             SecurityLevel::SecurityEvent => 2, // Critical
-            SecurityLevel::Critical => 1,   // Alert
-            SecurityLevel::Audit => 5,      // Notice
+            SecurityLevel::Critical => 1,      // Alert
+            SecurityLevel::Audit => 5,         // Notice
         };
         (16 * 8) + severity
     }

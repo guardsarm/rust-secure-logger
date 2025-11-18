@@ -3,7 +3,7 @@
 use crate::entry::LogEntry;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// Configuration for log file persistence
 #[derive(Debug, Clone)]
@@ -61,20 +61,16 @@ impl LogWriter {
 
     /// Get rotated log file path
     fn rotated_log_path(&self, index: usize) -> PathBuf {
-        self.config.log_dir.join(format!(
-            "{}.{}.log",
-            self.config.file_prefix, index
-        ))
+        self.config
+            .log_dir
+            .join(format!("{}.{}.log", self.config.file_prefix, index))
     }
 
     /// Open or create the current log file
     fn ensure_file(&mut self) -> io::Result<&mut File> {
         if self.current_file.is_none() {
             let path = self.current_log_path();
-            let file = OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(&path)?;
+            let file = OpenOptions::new().create(true).append(true).open(&path)?;
 
             // Get current file size
             self.current_size = file.metadata()?.len();
@@ -213,11 +209,7 @@ mod tests {
         };
 
         let mut writer = LogWriter::new(config).unwrap();
-        let entry = LogEntry::new(
-            SecurityLevel::Info,
-            "Test message".to_string(),
-            None,
-        );
+        let entry = LogEntry::new(SecurityLevel::Info, "Test message".to_string(), None);
 
         let result = writer.write_entry(&entry);
         assert!(result.is_ok());
