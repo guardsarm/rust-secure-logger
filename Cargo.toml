@@ -1,22 +1,40 @@
 [package]
 name = "rust-secure-logger"
-version = "0.1.0"
+version = "2.0.0"
 edition = "2021"
 authors = ["Tony Chuks Awunor <chuksawunor@guardsarm.com>"]
-description = "Memory-safe security logging for financial systems and critical infrastructure"
+description = "Memory-safe security logging for financial systems and critical infrastructure with encryption, log forwarding, and compliance automation"
 license = "MIT"
 repository = "https://github.com/guardsarm/rust-secure-logger"
 keywords = ["security", "logging", "audit", "financial", "memory-safe"]
 categories = ["development-tools::debugging", "cryptography"]
+readme = "README.md"
+
+[features]
+default = ["encryption", "compression"]
+encryption = []
+compression = []
+async-logging = ["tokio"]
+metrics = []
 
 [dependencies]
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
+sha3 = "0.10"
+aes-gcm = "0.10"
+flate2 = "1.0"
+base64 = "0.21"
+uuid = { version = "1.6", features = ["v4"] }
+tokio = { version = "1.35", features = ["full"], optional = true }
+thiserror = "1.0"
+regex = "1.10"
+rand = "0.8"
 
 [dev-dependencies]
 tempfile = "3.8"
+criterion = "0.5"
 
 [[example]]
 name = "basic_usage"
@@ -25,3 +43,11 @@ path = "examples/basic_usage.rs"
 [[example]]
 name = "audit_trail"
 path = "examples/audit_trail.rs"
+
+[[example]]
+name = "encrypted_logging"
+path = "examples/encrypted_logging.rs"
+
+[[bench]]
+name = "logging_benchmark"
+harness = false

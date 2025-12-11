@@ -1,4 +1,4 @@
-//! # Rust Secure Logger
+//! # Rust Secure Logger v2.0
 //!
 //! A production-ready, memory-safe logging library for financial systems and critical infrastructure.
 //!
@@ -6,11 +6,17 @@
 //!
 //! - **Memory Safety**: Built with Rust's ownership system to prevent buffer overflows and memory corruption
 //! - **Thread Safety**: Concurrent logging without data races using Arc<Mutex>
-//! - **Cryptographic Integrity**: SHA-256 hashing for tamper detection
+//! - **Cryptographic Integrity**: SHA-256/SHA-3 hashing for tamper detection
+//! - **Log Encryption**: AES-256-GCM encryption for sensitive log data (v2.0)
+//! - **Log Compression**: GZIP compression for efficient storage (v2.0)
+//! - **Log Correlation**: Automatic correlation IDs for distributed tracing (v2.0)
+//! - **Rate Limiting**: Configurable rate limiting to prevent log flooding (v2.0)
+//! - **Log Redaction**: Automatic PII/sensitive data redaction (v2.0)
 //! - **File Persistence**: Log rotation and disk persistence
 //! - **SIEM Integration**: CEF, LEEF, Syslog, and Splunk HEC formats
-//! - **Compliance Reporting**: SOX, GLBA, PCI-DSS automated reports
+//! - **Compliance Reporting**: SOX, GLBA, PCI-DSS, HIPAA automated reports
 //! - **Audit Trail**: Immutable log entries with timestamps
+//! - **Metrics**: Built-in logging metrics and statistics (v2.0)
 //!
 //! ## Alignment with Federal Guidance
 //!
@@ -20,33 +26,186 @@
 //! ## Quick Start
 //!
 //! ```rust
-//! use rust_secure_logger::SecureLogger;
+//! use rust_secure_logger::{SecureLogger, LoggerConfig};
 //!
+//! // Basic usage
 //! let logger = SecureLogger::new();
 //! logger.info("Application started");
 //! logger.audit("User authentication successful", Some(serde_json::json!({
 //!     "user_id": "12345",
 //!     "ip_address": "192.168.1.100"
 //! })));
+//!
+//! // v2.0: With encryption and correlation
+//! let config = LoggerConfig::default()
+//!     .with_encryption(true)
+//!     .with_compression(true)
+//!     .with_correlation_id("trace-12345");
+//! let secure_logger = SecureLogger::with_config(config);
 //! ```
+//!
+//! ## What's New in v2.0
+//!
+//! - **Encryption**: AES-256-GCM encryption for log entries
+//! - **Compression**: GZIP compression for storage efficiency
+//! - **Correlation IDs**: Distributed tracing support
+//! - **Rate Limiting**: Prevent log flooding attacks
+//! - **Redaction**: Automatic PII masking
+//! - **HIPAA Compliance**: Healthcare compliance reporting
+//! - **Enhanced Metrics**: Detailed logging statistics
 
 pub mod compliance;
 pub mod entry;
 pub mod formats;
 pub mod persistence;
+pub mod encryption;
+pub mod redaction;
+pub mod metrics;
 
 pub use compliance::{ComplianceFramework, ComplianceReport, ComplianceReporter};
 pub use entry::{LogEntry, SecurityLevel};
 pub use formats::{CEFFormatter, LEEFFormatter, SplunkFormatter, SyslogFormatter};
 pub use persistence::{LogWriter, PersistenceConfig};
+pub use encryption::{LogEncryptor, EncryptedLogEntry};
+pub use redaction::{LogRedactor, RedactionPattern, RedactionConfig};
+pub use metrics::{LogMetrics, MetricsSnapshot};
 
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+use std::collections::HashMap;
+use thiserror::Error;
+
+/// Logger errors
+#[derive(Error, Debug)]
+pub enum LoggerError {
+    #[error("Rate limit exceeded: {0}")]
+    RateLimitExceeded(String),
+
+    #[error("Encryption error: {0}")]
+    EncryptionError(String),
+
+    #[error("Compression error: {0}")]
+    CompressionError(String),
+
+    #[error("Serialization error: {0}")]
+    SerializationError(String),
+}
+
+/// Logger configuration for v2.0 features
+#[derive(Debug, Clone)]
+pub struct LoggerConfig {
+    pub enable_encryption: bool,
+    pub enable_compression: bool,
+    pub enable_redaction: bool,
+    pub correlation_id: Option<String>,
+    pub rate_limit_per_second: Option<u32>,
+    pub max_entry_size: usize,
+    pub retention_days: u32,
+    pub hash_algorithm: HashAlgorithm,
+}
+
+/// Hash algorithm selection
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HashAlgorithm {
+    Sha256,
+    Sha3_256,
+}
+
+impl Default for LoggerConfig {
+    fn default() -> Self {
+        Self {
+            enable_encryption: false,
+            enable_compression: false,
+            enable_redaction: true,
+            correlation_id: None,
+            rate_limit_per_second: None,
+            max_entry_size: 1024 * 1024, // 1MB
+            retention_days: 90,
+            hash_algorithm: HashAlgorithm::Sha256,
+        }
+    }
+}
+
+impl LoggerConfig {
+    /// Enable encryption for log entries
+    pub fn with_encryption(mut self, enable: bool) -> Self {
+        self.enable_encryption = enable;
+        self
+    }
+
+    /// Enable compression for log entries
+    pub fn with_compression(mut self, enable: bool) -> Self {
+        self.enable_compression = enable;
+        self
+    }
+
+    /// Set correlation ID for distributed tracing
+    pub fn with_correlation_id(mut self, id: impl Into<String>) -> Self {
+        self.correlation_id = Some(id.into());
+        self
+    }
+
+    /// Set rate limit (logs per second)
+    pub fn with_rate_limit(mut self, limit: u32) -> Self {
+        self.rate_limit_per_second = Some(limit);
+        self
+    }
+
+    /// Set hash algorithm
+    pub fn with_hash_algorithm(mut self, algorithm: HashAlgorithm) -> Self {
+        self.hash_algorithm = algorithm;
+        self
+    }
+
+    /// Enable automatic PII redaction
+    pub fn with_redaction(mut self, enable: bool) -> Self {
+        self.enable_redaction = enable;
+        self
+    }
+}
+
+/// Rate limiter for log flooding prevention
+#[derive(Debug)]
+struct RateLimiter {
+    limit: u32,
+    window_start: Instant,
+    count: u32,
+}
+
+impl RateLimiter {
+    fn new(limit: u32) -> Self {
+        Self {
+            limit,
+            window_start: Instant::now(),
+            count: 0,
+        }
+    }
+
+    fn check(&mut self) -> bool {
+        let now = Instant::now();
+        if now.duration_since(self.window_start) >= Duration::from_secs(1) {
+            self.window_start = now;
+            self.count = 0;
+        }
+
+        if self.count >= self.limit {
+            false
+        } else {
+            self.count += 1;
+            true
+        }
+    }
+}
 
 /// Thread-safe secure logger for financial systems
 #[derive(Clone)]
 pub struct SecureLogger {
     entries: Arc<Mutex<Vec<LogEntry>>>,
     source: Option<String>,
+    config: LoggerConfig,
+    rate_limiter: Arc<Mutex<Option<RateLimiter>>>,
+    metrics: Arc<Mutex<LogMetrics>>,
+    redactor: Arc<LogRedactor>,
 }
 
 impl SecureLogger {
@@ -55,6 +214,23 @@ impl SecureLogger {
         Self {
             entries: Arc::new(Mutex::new(Vec::new())),
             source: None,
+            config: LoggerConfig::default(),
+            rate_limiter: Arc::new(Mutex::new(None)),
+            metrics: Arc::new(Mutex::new(LogMetrics::new())),
+            redactor: Arc::new(LogRedactor::default()),
+        }
+    }
+
+    /// Create a logger with custom configuration (v2.0)
+    pub fn with_config(config: LoggerConfig) -> Self {
+        let rate_limiter = config.rate_limit_per_second.map(RateLimiter::new);
+        Self {
+            entries: Arc::new(Mutex::new(Vec::new())),
+            source: None,
+            config,
+            rate_limiter: Arc::new(Mutex::new(rate_limiter)),
+            metrics: Arc::new(Mutex::new(LogMetrics::new())),
+            redactor: Arc::new(LogRedactor::default()),
         }
     }
 
@@ -63,6 +239,40 @@ impl SecureLogger {
         Self {
             entries: Arc::new(Mutex::new(Vec::new())),
             source: Some(source.into()),
+            config: LoggerConfig::default(),
+            rate_limiter: Arc::new(Mutex::new(None)),
+            metrics: Arc::new(Mutex::new(LogMetrics::new())),
+            redactor: Arc::new(LogRedactor::default()),
+        }
+    }
+
+    /// Get current configuration
+    pub fn config(&self) -> &LoggerConfig {
+        &self.config
+    }
+
+    /// Get current metrics snapshot
+    pub fn get_metrics(&self) -> MetricsSnapshot {
+        let metrics = self.metrics.lock().unwrap();
+        metrics.snapshot()
+    }
+
+    /// Check rate limit before logging
+    fn check_rate_limit(&self) -> bool {
+        let mut limiter = self.rate_limiter.lock().unwrap();
+        if let Some(ref mut rl) = *limiter {
+            rl.check()
+        } else {
+            true
+        }
+    }
+
+    /// Apply redaction to message if enabled
+    fn apply_redaction(&self, message: &str) -> String {
+        if self.config.enable_redaction {
+            self.redactor.redact(message)
+        } else {
+            message.to_string()
         }
     }
 
