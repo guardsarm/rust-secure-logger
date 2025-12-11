@@ -48,6 +48,3 @@ path = "examples/audit_trail.rs"
 name = "encrypted_logging"
 path = "examples/encrypted_logging.rs"
 
-[[bench]]
-name = "logging_benchmark"
-harness = false

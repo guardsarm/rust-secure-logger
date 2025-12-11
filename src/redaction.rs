@@ -75,8 +75,8 @@ impl CompiledPatterns {
             phone: Regex::new(r"\b(\+?1?[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b").unwrap(),
             ip_address: Regex::new(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b").unwrap(),
             bank_account: Regex::new(r"\b\d{8,17}\b").unwrap(),
-            api_key: Regex::new(r"(?i)(api[_-]?key|token|secret|bearer)\s*[:=]\s*['\"]?[\w-]{20,}['\"]?").unwrap(),
-            password: Regex::new(r"(?i)(password|passwd|pwd)\s*[:=]\s*['\"]?[^\s'\"]+['\"]?").unwrap(),
+            api_key: Regex::new(r"(?i)(api[_-]?key|token|secret|bearer)\s*[:=]\s*['\x22]?[A-Za-z0-9_-]{20,}['\x22]?").unwrap(),
+            password: Regex::new(r"(?i)(password|passwd|pwd)\s*[:=]\s*['\x22]?[^\s'\x22]+['\x22]?").unwrap(),
         }
     }
 }
