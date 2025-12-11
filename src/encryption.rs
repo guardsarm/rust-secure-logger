@@ -88,7 +88,11 @@ impl LogEncryptor {
     }
 
     /// Encrypt a log entry
-    pub fn encrypt(&self, plaintext: &str, entry_id: &str) -> Result<EncryptedLogEntry, EncryptionError> {
+    pub fn encrypt(
+        &self,
+        plaintext: &str,
+        entry_id: &str,
+    ) -> Result<EncryptedLogEntry, EncryptionError> {
         let mut nonce_bytes = [0u8; 12];
         OsRng.fill_bytes(&mut nonce_bytes);
         let nonce = Nonce::from_slice(&nonce_bytes);
@@ -117,7 +121,9 @@ impl LogEncryptor {
             .map_err(|e| EncryptionError::Base64Error(e.to_string()))?;
 
         if nonce_bytes.len() != 12 {
-            return Err(EncryptionError::DecryptionFailed("Invalid nonce length".to_string()));
+            return Err(EncryptionError::DecryptionFailed(
+                "Invalid nonce length".to_string(),
+            ));
         }
 
         let nonce = Nonce::from_slice(&nonce_bytes);
@@ -127,12 +133,14 @@ impl LogEncryptor {
             .decrypt(nonce, ciphertext.as_ref())
             .map_err(|e| EncryptionError::DecryptionFailed(e.to_string()))?;
 
-        String::from_utf8(plaintext)
-            .map_err(|e| EncryptionError::DecryptionFailed(e.to_string()))
+        String::from_utf8(plaintext).map_err(|e| EncryptionError::DecryptionFailed(e.to_string()))
     }
 
     /// Encrypt multiple log entries in batch
-    pub fn encrypt_batch(&self, entries: &[(&str, &str)]) -> Vec<Result<EncryptedLogEntry, EncryptionError>> {
+    pub fn encrypt_batch(
+        &self,
+        entries: &[(&str, &str)],
+    ) -> Vec<Result<EncryptedLogEntry, EncryptionError>> {
         entries
             .iter()
             .map(|(plaintext, entry_id)| self.encrypt(plaintext, entry_id))

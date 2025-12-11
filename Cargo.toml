@@ -45,6 +45,10 @@ name = "audit_trail"
 path = "examples/audit_trail.rs"
 
 [[example]]
-name = "encrypted_logging"
-path = "examples/encrypted_logging.rs"
+name = "compliance_report"
+path = "examples/compliance_report.rs"
+
+[[example]]
+name = "siem_integration"
+path = "examples/siem_integration.rs"
 

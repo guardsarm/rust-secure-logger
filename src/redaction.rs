@@ -108,7 +108,9 @@ impl LogRedactor {
     pub fn add_custom_pattern(&mut self, name: &str, pattern: &str) -> Result<(), regex::Error> {
         let regex = Regex::new(pattern)?;
         self.custom_patterns.insert(name.to_string(), regex);
-        self.config.enabled_patterns.push(RedactionPattern::Custom(name.to_string()));
+        self.config
+            .enabled_patterns
+            .push(RedactionPattern::Custom(name.to_string()));
         Ok(())
     }
 
@@ -118,12 +120,20 @@ impl LogRedactor {
 
         for pattern_type in &self.config.enabled_patterns {
             result = match pattern_type {
-                RedactionPattern::SSN => self.redact_pattern(&result, &self.patterns.ssn, "***-**-****"),
+                RedactionPattern::SSN => {
+                    self.redact_pattern(&result, &self.patterns.ssn, "***-**-****")
+                }
                 RedactionPattern::CreditCard => self.redact_credit_card(&result),
                 RedactionPattern::Email => self.redact_email(&result),
-                RedactionPattern::PhoneNumber => self.redact_pattern(&result, &self.patterns.phone, "***-***-****"),
-                RedactionPattern::IpAddress => self.redact_pattern(&result, &self.patterns.ip_address, "***.***.***.***"),
-                RedactionPattern::BankAccount => self.redact_pattern(&result, &self.patterns.bank_account, "********"),
+                RedactionPattern::PhoneNumber => {
+                    self.redact_pattern(&result, &self.patterns.phone, "***-***-****")
+                }
+                RedactionPattern::IpAddress => {
+                    self.redact_pattern(&result, &self.patterns.ip_address, "***.***.***.***")
+                }
+                RedactionPattern::BankAccount => {
+                    self.redact_pattern(&result, &self.patterns.bank_account, "********")
+                }
                 RedactionPattern::ApiKey => self.redact_api_key(&result),
                 RedactionPattern::Password => self.redact_password(&result),
                 RedactionPattern::Custom(name) => {
@@ -146,54 +156,66 @@ impl LogRedactor {
 
     /// Redact credit card numbers, preserving last 4 digits
     fn redact_credit_card(&self, input: &str) -> String {
-        self.patterns.credit_card.replace_all(input, |caps: &regex::Captures| {
-            let matched = caps.get(0).unwrap().as_str();
-            let digits: String = matched.chars().filter(|c| c.is_ascii_digit()).collect();
-            if digits.len() >= 4 {
-                format!("****-****-****-{}", &digits[digits.len()-4..])
-            } else {
-                "****-****-****-****".to_string()
-            }
-        }).to_string()
+        self.patterns
+            .credit_card
+            .replace_all(input, |caps: &regex::Captures| {
+                let matched = caps.get(0).unwrap().as_str();
+                let digits: String = matched.chars().filter(|c| c.is_ascii_digit()).collect();
+                if digits.len() >= 4 {
+                    format!("****-****-****-{}", &digits[digits.len() - 4..])
+                } else {
+                    "****-****-****-****".to_string()
+                }
+            })
+            .to_string()
     }
 
     /// Redact email addresses, preserving domain
     fn redact_email(&self, input: &str) -> String {
-        self.patterns.email.replace_all(input, |caps: &regex::Captures| {
-            let matched = caps.get(0).unwrap().as_str();
-            if let Some(at_pos) = matched.find('@') {
-                let domain = &matched[at_pos..];
-                format!("****{}", domain)
-            } else {
-                "****@****.***".to_string()
-            }
-        }).to_string()
+        self.patterns
+            .email
+            .replace_all(input, |caps: &regex::Captures| {
+                let matched = caps.get(0).unwrap().as_str();
+                if let Some(at_pos) = matched.find('@') {
+                    let domain = &matched[at_pos..];
+                    format!("****{}", domain)
+                } else {
+                    "****@****.***".to_string()
+                }
+            })
+            .to_string()
     }
 
     /// Redact API keys and tokens
     fn redact_api_key(&self, input: &str) -> String {
-        self.patterns.api_key.replace_all(input, |caps: &regex::Captures| {
-            let matched = caps.get(0).unwrap().as_str();
-            if let Some(eq_pos) = matched.find([':', '=']) {
-                let prefix = &matched[..=eq_pos];
-                format!("{} [REDACTED]", prefix.trim_end_matches([':', '=', ' ']))
-            } else {
-                "[REDACTED API KEY]".to_string()
-            }
-        }).to_string()
+        self.patterns
+            .api_key
+            .replace_all(input, |caps: &regex::Captures| {
+                let matched = caps.get(0).unwrap().as_str();
+                if let Some(eq_pos) = matched.find([':', '=']) {
+                    let prefix = &matched[..=eq_pos];
+                    format!("{} [REDACTED]", prefix.trim_end_matches([':', '=', ' ']))
+                } else {
+                    "[REDACTED API KEY]".to_string()
+                }
+            })
+            .to_string()
     }
 
     /// Redact passwords
     fn redact_password(&self, input: &str) -> String {
-        self.patterns.password.replace_all(input, |caps: &regex::Captures| {
-            let matched = caps.get(0).unwrap().as_str();
-            if let Some(eq_pos) = matched.find([':', '=']) {
-                let prefix = &matched[..=eq_pos];
-                format!("{} [REDACTED]", prefix.trim_end_matches([':', '=', ' ']))
-            } else {
-                "[REDACTED PASSWORD]".to_string()
-            }
-        }).to_string()
+        self.patterns
+            .password
+            .replace_all(input, |caps: &regex::Captures| {
+                let matched = caps.get(0).unwrap().as_str();
+                if let Some(eq_pos) = matched.find([':', '=']) {
+                    let prefix = &matched[..=eq_pos];
+                    format!("{} [REDACTED]", prefix.trim_end_matches([':', '=', ' ']))
+                } else {
+                    "[REDACTED PASSWORD]".to_string()
+                }
+            })
+            .to_string()
     }
 
     /// Check if a string contains sensitive data
@@ -208,9 +230,10 @@ impl LogRedactor {
                 RedactionPattern::BankAccount => self.patterns.bank_account.is_match(input),
                 RedactionPattern::ApiKey => self.patterns.api_key.is_match(input),
                 RedactionPattern::Password => self.patterns.password.is_match(input),
-                RedactionPattern::Custom(name) => {
-                    self.custom_patterns.get(name).map_or(false, |r| r.is_match(input))
-                }
+                RedactionPattern::Custom(name) => self
+                    .custom_patterns
+                    .get(name)
+                    .is_some_and(|r| r.is_match(input)),
             };
             if has_match {
                 return true;
@@ -233,9 +256,10 @@ impl LogRedactor {
                 RedactionPattern::BankAccount => self.patterns.bank_account.is_match(input),
                 RedactionPattern::ApiKey => self.patterns.api_key.is_match(input),
                 RedactionPattern::Password => self.patterns.password.is_match(input),
-                RedactionPattern::Custom(name) => {
-                    self.custom_patterns.get(name).map_or(false, |r| r.is_match(input))
-                }
+                RedactionPattern::Custom(name) => self
+                    .custom_patterns
+                    .get(name)
+                    .is_some_and(|r| r.is_match(input)),
             };
             if has_match {
                 found.push(pattern_type.clone());
@@ -324,7 +348,9 @@ mod tests {
     #[test]
     fn test_custom_pattern() {
         let mut redactor = LogRedactor::default();
-        redactor.add_custom_pattern("employee_id", r"EMP-\d{6}").unwrap();
+        redactor
+            .add_custom_pattern("employee_id", r"EMP-\d{6}")
+            .unwrap();
         let input = "Employee EMP-123456 accessed system";
         let output = redactor.redact(input);
         assert!(output.contains("[REDACTED]"));

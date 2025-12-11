@@ -265,9 +265,9 @@ impl ComplianceReporter {
         let access_events = filtered
             .iter()
             .filter(|e| {
-                e.category.as_ref().is_some_and(|c| {
-                    c.contains("authentication") || c.contains("access")
-                })
+                e.category
+                    .as_ref()
+                    .is_some_and(|c| c.contains("authentication") || c.contains("access"))
             })
             .count();
 

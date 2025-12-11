@@ -55,24 +55,23 @@
 //! - **Enhanced Metrics**: Detailed logging statistics
 
 pub mod compliance;
+pub mod encryption;
 pub mod entry;
 pub mod formats;
-pub mod persistence;
-pub mod encryption;
-pub mod redaction;
 pub mod metrics;
+pub mod persistence;
+pub mod redaction;
 
 pub use compliance::{ComplianceFramework, ComplianceReport, ComplianceReporter};
+pub use encryption::{EncryptedLogEntry, LogEncryptor};
 pub use entry::{LogEntry, SecurityLevel};
 pub use formats::{CEFFormatter, LEEFFormatter, SplunkFormatter, SyslogFormatter};
-pub use persistence::{LogWriter, PersistenceConfig};
-pub use encryption::{LogEncryptor, EncryptedLogEntry};
-pub use redaction::{LogRedactor, RedactionPattern, RedactionConfig};
 pub use metrics::{LogMetrics, MetricsSnapshot};
+pub use persistence::{LogWriter, PersistenceConfig};
+pub use redaction::{LogRedactor, RedactionConfig, RedactionPattern};
 
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use std::collections::HashMap;
 use thiserror::Error;
 
 /// Logger errors
@@ -166,6 +165,7 @@ impl LoggerConfig {
 
 /// Rate limiter for log flooding prevention
 #[derive(Debug)]
+#[allow(dead_code)]
 struct RateLimiter {
     limit: u32,
     window_start: Instant,
@@ -199,6 +199,7 @@ impl RateLimiter {
 
 /// Thread-safe secure logger for financial systems
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct SecureLogger {
     entries: Arc<Mutex<Vec<LogEntry>>>,
     source: Option<String>,
@@ -258,6 +259,7 @@ impl SecureLogger {
     }
 
     /// Check rate limit before logging
+    #[allow(dead_code)]
     fn check_rate_limit(&self) -> bool {
         let mut limiter = self.rate_limiter.lock().unwrap();
         if let Some(ref mut rl) = *limiter {
@@ -268,6 +270,7 @@ impl SecureLogger {
     }
 
     /// Apply redaction to message if enabled
+    #[allow(dead_code)]
     fn apply_redaction(&self, message: &str) -> String {
         if self.config.enable_redaction {
             self.redactor.redact(message)

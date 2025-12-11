@@ -213,7 +213,12 @@ impl MetricsAggregator {
         let total_bytes: u64 = self.snapshots.iter().map(|s| s.bytes_logged).sum();
         let total_errors: u64 = self.snapshots.iter().map(|s| s.errors_count).sum();
         let total_rate_limited: u64 = self.snapshots.iter().map(|s| s.rate_limited_count).sum();
-        let peak_rate: u64 = self.snapshots.iter().map(|s| s.peak_rate).max().unwrap_or(0);
+        let peak_rate: u64 = self
+            .snapshots
+            .iter()
+            .map(|s| s.peak_rate)
+            .max()
+            .unwrap_or(0);
 
         AggregatedMetrics {
             logger_count: self.snapshots.len(),
@@ -299,7 +304,10 @@ mod tests {
             metrics2.record_log("INFO", None, 1024);
         }
         let snapshot2 = metrics2.snapshot();
-        assert!(snapshot2.bytes_human_readable().contains("KB") || snapshot2.bytes_human_readable().contains("MB"));
+        assert!(
+            snapshot2.bytes_human_readable().contains("KB")
+                || snapshot2.bytes_human_readable().contains("MB")
+        );
     }
 
     #[test]
